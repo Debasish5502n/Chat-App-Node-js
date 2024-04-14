@@ -35,16 +35,34 @@ export const signup = async (req, res) => {
     });
 
     if (newUser) {
-      // Generate JWT token here
-      generateTokenAndSetCookie(newUser._id, res);
       await newUser.save();
-
-      res.status(201).json({
-        _id: newUser._id,
-        fullName: newUser.fullName,
-        username: newUser.username,
-        profilePic: newUser.profilePic,
-      });
+      // Generate JWT token here
+      const payload = {
+        user: {
+          id: newUser.id,
+        },
+      };
+  
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET, 
+        {
+          expiresIn: "15d",
+        },
+        (error, token) => {
+          if (error) {
+            console.error("Error signing JWT:", error);
+            return res.status(500).json({ error: "Server Error" });
+          }
+          res.status(200).json({
+            _id: newUser._id,
+            fullName: newUser.fullName,
+            username: newUser.username,
+            profilePic: newUser.profilePic,
+            token: token,
+          });
+        }
+      );
     } else {
       res.status(400).json({ error: "Invalid user data" });
     }
@@ -54,6 +72,7 @@ export const signup = async (req, res) => {
   }
 };
 
+//Login
 export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
